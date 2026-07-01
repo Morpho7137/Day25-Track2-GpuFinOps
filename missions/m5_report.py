@@ -52,7 +52,28 @@ def run(verbose: bool = True) -> dict:
         "best_region": min(sustainability.REGION_CARBON, key=sustainability.REGION_CARBON.get),
     }
 
-    md = report.build_report(baseline, optimized, levers, sustainability=sust)
+    cache = r2.get("cache_economics", {})
+    reasoning = r2.get("reasoning_budget", {})
+    extra_sections = [
+        "",
+        "## Extension Results",
+        "",
+        "### Cache economics",
+        f"- Assumed reads per cached prefix: {cache.get('avg_cache_reads', 'n/a')}",
+        f"- Assumed write cost per million units: {cache.get('write_cost_per_m', 'n/a')}",
+        f"- Read discount: {cache.get('read_discount', 'n/a')}",
+        f"- Cache worth it? {cache.get('worth_it', 'n/a')}",
+        f"- Effective cache savings: ${cache.get('effective_savings_usd', 0):,.2f}",
+        "",
+        "### Reasoning budget",
+        f"- Reasoning traffic share: {reasoning.get('reasoning_share', 0):.1%}",
+        f"- Reasoning cost share: {reasoning.get('reasoning_cost_share', 0):.1%}",
+        f"- Estimated reasoning energy: {reasoning.get('reasoning_wh', 0):.2f} Wh",
+        f"- 10% cap avoidable spend: ${reasoning.get('avoidable_cost_usd', 0):,.2f}",
+        f"- 10% cap avoidable energy: {reasoning.get('avoidable_wh', 0):.2f} Wh",
+    ]
+
+    md = report.build_report(baseline, optimized, levers, sustainability=sust) + "\n" + "\n".join(extra_sections)
     out_md = os.path.join(ROOT, "outputs", "report.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
     with open(out_md, "w") as f:
@@ -64,8 +85,14 @@ def run(verbose: bool = True) -> dict:
         print(md)
         print(f"\nWritten: outputs/report.md" + (f" + outputs/savings.png" if png else " (matplotlib absent: PNG skipped)"))
 
-    return {"baseline_monthly": round(baseline), "optimized_monthly": round(optimized),
-            "levers": levers, "total_savings_pct": round(total_pct, 1)}
+    return {
+        "baseline_monthly": round(baseline),
+        "optimized_monthly": round(optimized),
+        "levers": levers,
+        "total_savings_pct": round(total_pct, 1),
+        "cache_economics": cache,
+        "reasoning_budget": reasoning,
+    }
 
 
 if __name__ == "__main__":

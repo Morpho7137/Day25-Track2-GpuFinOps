@@ -52,6 +52,19 @@ def discount_stack(
     return cache_mult * batch_mult
 
 
+def cache_is_worth_it(avg_cache_reads: float, write_cost_per_m: float, read_discount: float = 0.10) -> bool:
+    """Return True when cached reads justify the write/storage cost.
+
+    The lab uses normalized units here: cached reads are worth
+    `avg_cache_reads * (1 - read_discount)` effective units, and caching is
+    worth it when that exceeds the write cost.
+    """
+    avg_cache_reads = max(0.0, avg_cache_reads)
+    write_cost_per_m = max(0.0, write_cost_per_m)
+    read_discount = max(0.0, min(1.0, read_discount))
+    return avg_cache_reads * (1.0 - read_discount) > write_cost_per_m
+
+
 def break_even_utilization(discount_frac: float) -> float:
     """Utilization at which a commitment pays off ~= 1 - discount.
 
